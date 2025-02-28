@@ -25,7 +25,6 @@
   "license": "MIT",
   "dependencies": {
     "@mozilla/readability": "^0.4.4",
-    "@modelcontextprotocol/sdk": "^0.1.0",
     "turndown": "^7.1.2",
     "jsdom": "^22.1.0",
     "node-fetch": "^2.6.12",
@@ -34,10 +33,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/username/obsidian-web-scraper.git"
+    "url": "https://github.com/AlexandrosLiaskos/obsidian-scraper.git"
   },
   "bugs": {
-    "url": "https://github.com/username/obsidian-web-scraper/issues"
+    "url": "https://github.com/AlexandrosLiaskos/obsidian-scraper/issues"
   },
-  "homepage": "https://github.com/username/obsidian-web-scraper#readme"
+  "homepage": "https://github.com/AlexandrosLiaskos/obsidian-scraper#readme"
 }
