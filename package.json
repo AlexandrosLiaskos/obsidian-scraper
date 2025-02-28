@@ -1,6 +1,6 @@
 {
   "name": "obsidian-web-scraper",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Tools for scraping web content and saving it to Obsidian vaults",
   "main": "index.js",
   "bin": {
