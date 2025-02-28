@@ -1,0 +1,43 @@
+{
+  "name": "obsidian-web-scraper",
+  "version": "1.0.0",
+  "description": "Tools for scraping web content and saving it to Obsidian vaults",
+  "main": "index.js",
+  "bin": {
+    "obsidian-scraper": "./bin/scrape-site.js",
+    "url-finder": "./bin/url-finder.js",
+    "scrape-url": "./bin/scraper.js",
+    "obsidian-scraper-mcp": "./mcp/server.js"
+  },
+  "scripts": {
+    "start": "node bin/scrape-site.js",
+    "find-urls": "node bin/url-finder.js",
+    "scrape": "node bin/scraper.js"
+  },
+  "keywords": [
+    "obsidian",
+    "web-scraper",
+    "markdown",
+    "documentation",
+    "web-clipper"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@mozilla/readability": "^0.4.4",
+    "@modelcontextprotocol/sdk": "^0.1.0",
+    "turndown": "^7.1.2",
+    "jsdom": "^22.1.0",
+    "node-fetch": "^2.6.12",
+    "yargs": "^17.7.2",
+    "dayjs": "^1.11.10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/username/obsidian-web-scraper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/username/obsidian-web-scraper/issues"
+  },
+  "homepage": "https://github.com/username/obsidian-web-scraper#readme"
+}
