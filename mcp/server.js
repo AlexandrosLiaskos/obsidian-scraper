@@ -14,8 +14,8 @@ const {
   McpError
 } = require('@modelcontextprotocol/sdk/types.js');
 
-const urlFinder = require('../bin/url-finder');
-const scraper = require('../bin/scraper');
+const urlFinder = require('../index').urlFinder; // Use index exports
+const scraper = require('../index').scraper; // Use index exports
 const scrapeSite = require('../bin/scrape-site').scrapeSite;
 const fs = require('fs');
 const path = require('path');
@@ -234,36 +234,33 @@ class ObsidianScraperServer {
 
   async handleScrapeSite(args) {
     try {
-      // Create a temporary directory for outputs
-      const tempDir = path.join(process.cwd(), 'temp_scrape_output');
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
-      }
-
-      // Create temp file for URLs
-      const tempUrlFile = path.join(tempDir, 'temp-urls.txt');
-
       // First find all URLs
       const options = {
         depth: args.depth || 2,
         subUrlsOnly: true,
         maxUrls: args.max_urls || 100,
+        exclude: args.exclude,
+        include: args.include,
       };
 
       const urls = await urlFinder.crawlUrls(args.url, options.depth, options);
-      fs.writeFileSync(tempUrlFile, urls.join('\n'));
+      console.error(`MCP: Found ${urls.length} URLs to scrape.`);
+
+      if (urls.length === 0) {
+        return {
+          content: [ { type: 'text', text: `No URLs found at ${args.url} with the given criteria.` } ],
+        };
+      }
 
       // Create output directory if it doesn't exist
       if (!fs.existsSync(args.output)) {
         fs.mkdirSync(args.output, { recursive: true });
       }
+      console.error(`MCP: Scraping ${urls.length} URLs found at ${args.url} to ${args.output}`);
 
-      // Process all URLs
-      await scraper.processUrls(urls, '.', 'temp', args.template, args.output);
-
-      // Clean up temp files
-      fs.unlinkSync(tempUrlFile);
-      fs.rmdirSync(tempDir, { recursive: true });
+      // Process all URLs - pass output dir directly
+      // The vault path and folder name are not relevant when output path is specified.
+      await scraper.processUrls(urls, '.', '', args.template, args.output);
 
       return {
         content: [
@@ -274,6 +271,7 @@ class ObsidianScraperServer {
         ],
       };
     } catch (error) {
+      console.error("MCP Error during scrapeSite:", error); // Log the full error
       return {
         content: [
           {

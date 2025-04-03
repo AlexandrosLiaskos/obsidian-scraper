@@ -114,25 +114,15 @@ function isSubUrl(url, baseUrl) {
       return false;
     }
 
-    // Special handling for Google Earth Engine API docs
-    if (baseUrlObj.hostname === 'developers.google.com' &&
-        baseUrlObj.pathname.includes('/earth-engine/apidocs')) {
+    // Check if the URL path starts with the base URL path
+    // Ensure we don't capture just the domain root if the base path is '/'
+    const basePath = baseUrlObj.pathname === '/' ? '/' : baseUrlObj.pathname;
 
-      // Only include URLs that are in the Earth Engine API docs section
-      if (urlObj.pathname.includes('/earth-engine/apidocs') ||
-          urlObj.pathname.includes('/earth-engine/api_docs')) {
-
-        // Skip URLs with query parameters or fragments
-        if (urlObj.search === '' && urlObj.hash === '') {
-          return true;
-        }
-      }
-      return false;
+    // Check if it's a sub-path and ignore fragments
+    if (urlObj.pathname.startsWith(basePath) && urlObj.hash === '') {
+        return true;
     }
-
-    // Then check if the URL path starts with the base URL path
-    // This ensures we only get sub-paths of the provided URL
-    return urlObj.pathname.startsWith(baseUrlObj.pathname) && urlObj.search === '';
+    return false;
   } catch (e) {
     return false;
   }
@@ -198,11 +188,12 @@ async function crawlUrls(baseUrl, depth, options) {
       }
 
       visitedUrls.add(url);
+if (collectedUrls.length >= options.maxUrls) {
+  console.error(`Reached maximum URLs limit of ${options.maxUrls}`);
+  break; // Exit the inner loop early if max is reached
+}
 
-      if (collectedUrls.length >= options.maxUrls) {
-        console.error(`Reached maximum URLs limit of ${options.maxUrls}`);
-      }
-
+collectedUrls.push(url);
       collectedUrls.push(url);
 
       if (currentDepth < depth - 1) {

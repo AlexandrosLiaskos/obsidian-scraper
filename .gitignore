@@ -18,6 +18,7 @@ build/
 # Temporary files
 temp-urls.txt
 temp-batch-*.txt
+temp_scrape_output/
 
 # OS specific files
 .DS_Store

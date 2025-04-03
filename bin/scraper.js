@@ -17,62 +17,18 @@ const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
 const dayjs = require('dayjs');
 
-// Parse command line arguments
-const argv = yargs(hideBin(process.argv))
-  .option('url', {
-    alias: 'u',
-    description: 'URL to scrape (can be provided multiple times)',
-    type: 'array',
-  })
-  .option('file', {
-    alias: 'f',
-    description: 'File containing URLs to scrape (one per line)',
-    type: 'string',
-  })
-  .option('vault', {
-    alias: 'v',
-    description: 'Path to Obsidian vault',
-    type: 'string',
-    demandOption: true
-  })
-  .option('output', {
-    alias: 'o',
-    description: 'Custom output path for markdown files (overrides vault+folder)',
-    type: 'string',
-    default: null
-  })
-  .option('folder', {
-    description: 'Folder within vault to save clippings',
-    type: 'string',
-    default: 'Clippings'
-  })
-  .option('template', {
-    alias: 't',
-    description: 'Template file path for formatting',
-    type: 'string'
-  })
-  .help()
-  .alias('help', 'h')
-  .argv;
-
 // Default template for clippings
-const DEFAULT_TEMPLATE = `---
-title: {{title}}
-source: {{url}}
-author: {{author}}
-published: {{date}}
-tags: [clippings]
----
 
-# {{title}}
-
-> [!info]
-> Source: [{{title}}]({{url}})
-> Author: {{author}}
-> Date: {{date}}
-
-{{content}}
-`;
+// Function to load the default template
+function getDefaultTemplate() {
+  const defaultTemplatePath = path.join(__dirname, '../templates/default.md');
+  try {
+    return fs.readFileSync(defaultTemplatePath, 'utf8');
+  } catch (error) {
+    console.warn(`Warning: Could not load default template from ${defaultTemplatePath}. Using hardcoded default.`);
+    return DEFAULT_TEMPLATE; // Fallback
+  }
+}
 
 /**
  * Ensures a directory exists, creating it if necessary
@@ -94,7 +50,10 @@ function createFilename(title) {
     .replace(/-+/g, '-')            // Replace multiple hyphens with a single one
     .trim();
 
-  return `${sanitized}.md`;
+  // Ensure filename is not empty after sanitization
+  const finalName = sanitized.length > 0 ? sanitized : 'untitled';
+
+  return `${finalName}.md`;
 }
 
 /**
@@ -142,7 +101,7 @@ function extractMetadata(document, url) {
  * Applies template to the content and metadata
  */
 function applyTemplate(content, metadata, templateContent) {
-  const template = templateContent || DEFAULT_TEMPLATE;
+  const template = templateContent || getDefaultTemplate();
 
   return template
     .replace(/{{title}}/g, metadata.title)
@@ -247,19 +206,20 @@ async function saveToObsidian(markdown, metadata, vaultPath, folderName, templat
 /**
  * Main function to process URLs
  */
-async function processUrls(urls, vaultPath, folderName, templateContent, outputPath = null) {
-  let templateFile = templateContent;
+async function processUrls(urls, vaultPath, folderName, templatePath, outputPath = null) {
+  let templateContent = null;
 
   // Load template file if provided
-  if (argv.template) {
+  if (templatePath) {
     try {
-      templateFile = fs.readFileSync(argv.template, 'utf8');
+      templateContent = fs.readFileSync(templatePath, 'utf8');
     } catch (error) {
       console.error(`Error loading template file: ${error.message}`);
       console.log('Using default template.');
     }
   }
 
+  // Process each URL
   for (const url of urls) {
     const result = await scrapeUrl(url);
     if (result) {
@@ -268,54 +228,80 @@ async function processUrls(urls, vaultPath, folderName, templateContent, outputP
         result.metadata,
         vaultPath,
         folderName,
-        templateFile,
+        templateContent,
         outputPath
       );
     }
   }
+  console.log("Saved clipping.")
 }
 
 /**
  * Entry point
  */
 async function main() {
-  let urls = [];
+  // Parse command line arguments
+  const argv = yargs(hideBin(process.argv))
+    .option('url', {
+      alias: 'u',
+      description: 'URL to scrape (can be provided multiple times)',
+      type: 'array',
+    })
+    .option('file', {
+      alias: 'f',
+      description: 'File containing URLs to scrape (one per line)',
+      type: 'string',
+    })
+    .option('vault', {
+      alias: 'v',
+      description: 'Path to Obsidian vault (required if output is not set)',
+      type: 'string',
+    })
+    .option('output', {
+      alias: 'o',
+      description: 'Custom output path for markdown files (overrides vault+folder)',
+      type: 'string',
+      default: null
+    })
+    .option('folder', {
+      description: 'Folder within vault to save clippings (used if output is not set)',
+      type: 'string',
+      default: 'Clippings'
+    })
+    .option('template', {
+      alias: 't',
+      description: 'Template file path for formatting',
+      type: 'string'
+    })
+    .check((argv) => {
+      if (!argv.output && !argv.vault) {
+        throw new Error("Either --output or --vault must be provided.");
+      }
+      if (!argv.url && !argv.file) {
+        throw new Error("Either --url or --file must be provided.");
+      }
+      return true;
+    })
+    .help()
+    .alias('help', 'h')
+    .argv;
 
-  // Get URLs from command line arguments
-  if (argv.url && argv.url.length > 0) {
-    urls = [...argv.url];
-  }
+    let urls = [];
 
-  // Get URLs from file
-  if (argv.file) {
-    try {
-      const fileContent = fs.readFileSync(argv.file, 'utf8');
-      const fileUrls = fileContent
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0 && line.startsWith('http'));
-
-      urls = [...urls, ...fileUrls];
-    } catch (error) {
-      console.error(`Error reading URL file: ${error.message}`);
+    if (argv.url && argv.url.length > 0) urls = [...argv.url];
+    if (argv.file) {
+      try {
+        const fileContent = fs.readFileSync(argv.file, 'utf8');
+        const fileUrls = fileContent.split('\n').map(line => line.trim()).filter(line => line.length > 0 && line.startsWith('http'));
+        urls = [...urls, ...fileUrls];
+      } catch (error) {
+        console.error(`Error reading URL file: ${error.message}`);
+        process.exit(1);
+      }
     }
-  }
 
-  // Validate we have URLs to process
-  if (urls.length === 0) {
-    console.error('No URLs provided. Use --url or --file to specify URLs.');
-    process.exit(1);
-  }
-
-  // Determine output path
-  const outputPath = argv.output ? argv.output : null;
-
-  if (outputPath) {
-    console.log(`Output will be saved to: ${outputPath}`);
-  }
-
-  console.log(`Processing ${urls.length} URLs...`);
-  await processUrls(urls, argv.vault, argv.folder, null, outputPath);
+    console.log(`Processing ${urls.length} URLs...`);
+    await processUrls(urls, argv.vault, argv.folder, argv.template, argv.output);
 
   console.log('Done!');
 }

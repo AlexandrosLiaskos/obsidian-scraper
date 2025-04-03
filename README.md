@@ -51,10 +51,10 @@ scraper --url https://example.com/page --vault ~/ObsidianVault --output ~/Obsidi
 Options:
 - `--url, -u`: URL to scrape (can be provided multiple times)
 - `--file, -f`: File containing URLs to scrape (one per line)
-- `--vault, -v`: Path to Obsidian vault (required)
+- `--vault, -v`: Path to Obsidian vault (required if --output is not used)
 - `--output, -o`: Custom output path for markdown files (overrides vault+folder)
 - `--folder`: Folder within vault to save clippings (default: "Clippings")
-- `--template, -t`: Template file path for formatting
+- `--template, -t`: Template file path for formatting (defaults to internal template)
 
 ### Scrape Entire Site
 
@@ -65,10 +65,10 @@ scrape-site --url https://example.com/docs --output ~/ObsidianVault/Docs
 ```
 
 Options:
-- `--url, -u`: Base URL to extract links from and scrape (required)
+- `--url, -u`: Base URL to crawl and scrape (required)
 - `--output, -o`: Output directory for the scraped markdown files (required)
-- `--vault, -v`: Path to Obsidian vault (defaults to current directory)
 - `--depth, -d`: Crawl depth (number of levels to follow links) (default: 2)
+- `--max-urls, -m`: Maximum number of URLs to collect (default: 10000)
 - `--template, -t`: Template file path for formatting
 - `--exclude, -e`: Exclude URLs matching these patterns (comma-separated)
 - `--include, -i`: Only include URLs matching these patterns (comma-separated)
@@ -77,21 +77,24 @@ Options:
 ## Programmatic Usage
 
 ```javascript
-const { findUrls, scrapeUrl, scrapeSite } = require('obsidian-web-scraper');
+const obsidianScraper = require('obsidian-web-scraper');
 
 // Find URLs
-const urls = await findUrls('https://example.com/docs', 2, { maxUrls: 100 });
+const urls = await obsidianScraper.findUrls('https://example.com/docs', 2, { maxUrls: 100 });
+console.log(urls);
 
 // Scrape a single URL
-const result = await scrapeUrl('https://example.com/page');
+const result = await obsidianScraper.scrapeUrl('https://example.com/page');
 console.log(result.markdown);
+console.log(result.metadata);
 
 // Scrape an entire site
-await scrapeSite({
+await obsidianScraper.scrapeSite({
   url: 'https://example.com/docs',
   output: './output',
   depth: 2,
-  maxUrls: 100
+  maxUrls: 100,
+  template: './custom-template.md' // Optional template path
 });
 ```
 
@@ -121,7 +124,7 @@ You can customize the output format using templates. Templates support the follo
 - `{{description}}`: Page description (if available)
 - `{{content}}`: The main content in Markdown format
 
-Example template:
+Example (similar to the default internal template):
 
 ```markdown
 ---
